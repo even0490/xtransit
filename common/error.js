@@ -15,13 +15,11 @@ class Parser {
 
   execute(data) {
     this.pending += data;
-    let index = this.pending.indexOf('\n');
-    while (index !== -1) {
-      const line = this.pending.slice(0, index);
-      this.parse(line);
-      this.pending = this.pending.slice(index + 1);
-      index = this.pending.indexOf('\n');
-    }
+    const lineList = this.pending.split('\n');
+    lineList.forEach(item => {
+      this.parse(item);
+    });
+    this.pending = '';
   }
 
   pushLog() {
@@ -37,12 +35,13 @@ class Parser {
   parse(line) {
     const lineMax = 10 * 1024;
     line = line.length > lineMax ? line.slice(0, lineMax) : line;
-    if (line.match(this.errexp)) { // error start
+    if (line.match(this.errexp)) {
+      // error start
       this.pushLog();
       this.current = { stack: '', type: '', extra: '' };
       this.current.stack = line + '\n';
       const match = line.match(/([A-z]*Error)[:]? /);
-      this.current.type = match && match[1] || 'Error';
+      this.current.type = (match && match[1]) || 'Error';
       this.current.timestamp = Date.now();
     } else if (this.expect(line, 'at ')) {
       if (this.current) {
@@ -70,7 +69,7 @@ class Parser {
 
       const onEnd = () => {
         cleanup();
-        if (this.current && this.current.extra) {
+        if (this.current) {
           this.pushLog();
         }
         resolve(this.list);
@@ -83,7 +82,7 @@ class Parser {
         reject(err);
       };
 
-      cleanup = function () {
+      cleanup = function() {
         readable.removeListener('data', onData);
         readable.removeListener('end', onEnd);
         readable.removeListener('error', onError);
